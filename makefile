@@ -9,6 +9,6 @@ demo: infodemo.c
 
 
 clean:
-	-rm infoDemo
+	-rm infodemo
 	-rm myls
 	-rm *.o
