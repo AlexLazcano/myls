@@ -9,37 +9,43 @@
 #include <time.h>
 // #include <fcntl.h>
 
+void printLastModified(struct dirent *entry, char* path)
+{
+    char filePath[100];
+    struct stat sb;
+    struct tm *date;
+    char tmbuf[64], buf[64];
+
+    strcpy(filePath, path);
+    strcat(filePath, "/");
+    strcat(filePath, entry->d_name);
+
+    // printf("%s\n", filePath);
+
+    stat(filePath, &sb);
+    time_t time = (time_t)sb.st_mtim.tv_sec;
+    date = localtime(&time);
+
+    strftime(tmbuf, sizeof tmbuf, "%b %d %Y %H:%M", date);
+
+    printf("%s %s\n", tmbuf, entry->d_name);
+}
+
 void showls(char *path)
 {
     DIR *folder;
     struct dirent *entry;
     printf("Path is: %s\n", path);
     folder = opendir(".");
-    struct stat sb;
-    struct tm *date;
-    char tmbuf[64], buf[64];
+    
+    
     if (folder)
     {
         while (entry = readdir(folder))
         {
-            char filePath[100];
-
-            strcpy(filePath, path);
-            strcat(filePath, "/");
-            strcat(filePath, entry->d_name);
-
-            // printf("%s\n", filePath);
-
-            stat(filePath, &sb);
-            time_t time = (time_t)sb.st_mtim.tv_sec;
-            date = localtime(&time);
-
-            strftime(tmbuf, sizeof tmbuf, "%b %d %Y %H:%M", date);
-
-            printf("%s %s\n", tmbuf, entry->d_name);
+            printLastModified(entry, path);
             // printf("%s\n", entry->d_name);
             // printf("%ld\n", entry->d_off);
-            
         }
     }
     else
