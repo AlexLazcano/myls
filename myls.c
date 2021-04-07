@@ -1,4 +1,4 @@
-#include <stdio.h>
+// #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <ctype.h>
+#include "secret_headers.h"
 // #include <fcntl.h>
 
 struct node
@@ -22,20 +23,25 @@ struct node *last = NULL;
 
 void enqueue(char *dir, char *path)
 {
+
+    // printf("path: %s %s\n", path, dir);
     struct node *ptr = malloc(sizeof(struct node));
     // char *copyDir = malloc(sizeof(strlen(dir)));
 
-    char *filePath = malloc(sizeof(strlen(path) + strlen(dir) + strlen("/\"") + 1));
+    
+    int size = strlen(path) + strlen(dir) + strlen("\"\"");
 
-    // strcpy(copyDir, dir);
-    // strcpy(copyPath, path);
+    char *filePath = malloc(size);
+
     strcpy(filePath, path);
-    strcat(filePath, "/\"");
-    strcat(filePath, dir);
-    strcat(filePath, "\"");
+    strcat(filePath, "/");
+    // strcat(filePath, "/\"");
 
+    strcat(filePath, dir);
+    // strcat(filePath, "\"");
+    // printf("%s\n", filePath);
     ptr->path = filePath;
-    // ptr->path = copyPath;
+   
     ptr->next = NULL;
     if (!first)
     {
@@ -47,6 +53,7 @@ void enqueue(char *dir, char *path)
         last->next = ptr;
         last = ptr;
     }
+    
 }
 
 struct node *dequeue()
@@ -218,6 +225,7 @@ void recursiveShow(char *path)
         while (entry = readdir(folder))
         {
             entryNames[numberOfEntries] = entry->d_name;
+
             numberOfEntries++;
             if (numberOfEntries > entryLength)
             {
@@ -227,24 +235,18 @@ void recursiveShow(char *path)
         }
 
         sort(entryNames, numberOfEntries);
+        printArray(entryNames, numberOfEntries);
         for (int i = 0; i < numberOfEntries; i++)
         {
             if (isDirectory(entryNames[i], path))
             {
+                // printf("enqueuing: %s \n", entryNames[i]);
                 enqueue(entryNames[i], path);
             }
-            // printf("%s\n", entryNames[i]);
         }
-        printArray(entryNames, numberOfEntries);
-        displayQ();
-        struct node *ptr;
 
-        if (first)
-        {
-            ptr = dequeue();
-            printf("%s\n", ptr->path);
-            recursiveShow(ptr->path);
-        }
+        // displayQ();
+        free(entryNames);
     }
     else
     {
@@ -272,11 +274,14 @@ void showDir(char *path)
             if (numberOfEntries > entryLength)
             {
                 entryLength += 10;
+
                 entryNames = realloc(entryNames, sizeof(char *) * entryLength);
             }
         }
 
         sort(entryNames, numberOfEntries);
+        printArray(entryNames, numberOfEntries);
+        free(entryNames);
     }
     else
     {
@@ -317,9 +322,21 @@ int main(int argc, char const *argv[])
             strcpy(PATH, argv[i]);
         }
     }
-    // showDir(PATH);
 
     recursiveShow(PATH);
+    struct node *ptr;
+
+    ptr = first;
+    while (first)
+    {
+        ptr = dequeue();
+        // printf("next: %s\n", ptr->path);
+        recursiveShow(ptr->path);
+        free(ptr->path);
+        free(ptr);
+        // displayQ();
+        printf("\n");
+    }
 
     return 0;
 }
