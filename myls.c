@@ -378,6 +378,9 @@ void printDirectory(char *path)
         }
         free(files);
     }
+    else{
+        printf("Error: %s not found\n", path);
+    }
 }
 
 void showDir(char *path)
@@ -418,10 +421,15 @@ void showDir(char *path)
 
 int main(int argc, char const *argv[])
 {
-    option_i = false;
-    option_R = false;
-    option_l = false;
+    // option_i = false;
+    // option_R = false;
+    // option_l = false;
     char PATH[100];
+
+    strcpy(PATH, ".");
+
+    int numberOfPaths = 0;
+
     for (int i = 1; i < argc; i++)
     {
         if (argv[i][0] == '-')
@@ -441,16 +449,29 @@ int main(int argc, char const *argv[])
                 else if (argv[i][j] == 'l')
                 {
                     option_l = true;
+                }else{
+                    printf("Error: %c flag is invalid\n", argv[i][j]);
+
                 }
+
             }
         }
-        if (i == argc - 1 && argv[i][0] != '-')
+        if ( argv[i][0] != '-')
         {
-            strcpy(PATH, argv[i]);
+            numberOfPaths++;
+            // strcpy(PATH, argv[i]);
         }
     }
 
-    printDirectory(PATH);
+    // printDirectory(PATH);
+    for (int i = argc - numberOfPaths; i < argc; i++)
+    {
+        
+        strcpy(PATH, argv[i]);
+
+        printDirectory(PATH);
+    }
+    
 
     // recursiveShow(PATH);
     if (option_R)
