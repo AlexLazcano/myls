@@ -11,6 +11,10 @@
 #include "secret_headers.h"
 // #include <fcntl.h>
 
+bool option_i = false;
+bool option_R = false;
+bool option_l = false;
+
 struct node
 {
     char *path;
@@ -28,7 +32,6 @@ void enqueue(char *dir, char *path)
     struct node *ptr = malloc(sizeof(struct node));
     // char *copyDir = malloc(sizeof(strlen(dir)));
 
-    
     int size = strlen(path) + strlen(dir) + strlen("\"\"");
 
     char *filePath = malloc(size);
@@ -41,7 +44,7 @@ void enqueue(char *dir, char *path)
     // strcat(filePath, "\"");
     // printf("%s\n", filePath);
     ptr->path = filePath;
-   
+
     ptr->next = NULL;
     if (!first)
     {
@@ -53,7 +56,6 @@ void enqueue(char *dir, char *path)
         last->next = ptr;
         last = ptr;
     }
-    
 }
 
 struct node *dequeue()
@@ -80,12 +82,98 @@ void displayQ()
     }
 }
 
-void printLastModified(char *entryName, char *path)
+char *getPermissions(mode_t bits)
+{
+    int n = 10;
+    // char *permisions = malloc(n*sizeof(char));
+    char permisions[] = "rwxrwxrwx";
+
+    //user
+    if ((bits & S_IRWXU) == 0) // read write exec
+    {
+        permisions[0] = '-';
+        permisions[1] = '-';
+        permisions[2] = '-';
+    }
+    else
+    {
+        if ((bits & S_IRUSR) == 0) // read
+        {
+            permisions[0] = '-';
+        }
+
+        if ((bits & S_IWUSR) == 0) // write
+        {
+
+            permisions[1] = '-';
+        }
+        if ((bits & S_IXUSR) == 0) // exec
+        {
+            permisions[2] = '-';
+        }
+    }
+
+    //group
+    if ((bits & S_IRWXG) == 0) // read write exec
+    {
+        permisions[3] = '-';
+        permisions[4] = '-';
+        permisions[5] = '-';
+    }
+    else
+    {
+        if ((bits & S_IRGRP) == 0) // read
+        {
+            permisions[3] = '-';
+        }
+
+        if ((bits & S_IWGRP) == 0) // write
+        {
+            permisions[4] = '-';
+        }
+        if ((bits & S_IXGRP) == 0) // exec
+        {
+            permisions[5] = '-';
+        }
+    }
+    //other
+    if ((bits & S_IRWXO) == 0) // read write exec
+    {
+        permisions[6] = '-';
+        permisions[7] = '-';
+        permisions[8] = '-';
+    }
+    else
+    {
+        if ((bits & S_IROTH) == 0) // read
+        {
+            permisions[6] = '-';
+        }
+
+        if ((bits & S_IWOTH) == 0) // write
+        {
+            permisions[7] = '-';
+        }
+        if ((bits & S_IXOTH) == 0) // exec
+        {
+            permisions[8] = '-';
+        }
+    }
+
+    char *ptr = malloc(strlen(permisions) * sizeof(char));
+    strcpy(ptr, permisions);
+    return ptr;
+}
+
+void printFile(char *entryName, char *path)
 {
     char filePath[100];
     struct stat sb;
     struct tm *date;
     char tmbuf[64], buf[64];
+
+    struct group *grp;
+    struct passwd *user;
 
     strcpy(filePath, path);
     strcat(filePath, "/");
@@ -96,10 +184,25 @@ void printLastModified(char *entryName, char *path)
     stat(filePath, &sb);
     time_t time = (time_t)sb.st_mtim.tv_sec;
     date = localtime(&time);
+    char *permisions;
 
-    strftime(tmbuf, sizeof tmbuf, "%b %d %Y %H:%M", date);
+    int n = strftime(tmbuf, sizeof tmbuf, "%b %d %Y %H:%M", date);
 
-    printf("%s %s\n", tmbuf, entryName);
+    permisions = getPermissions(sb.st_mode);
+
+    if (option_i)
+    {
+        printf("%-9ld ", sb.st_ino);
+    }
+
+    if (option_l)
+    {
+        printf("%-10s %ld %s %s %6ld %-18s ", permisions, sb.st_nlink, getpwuid(sb.st_uid)->pw_name, getgrgid(sb.st_gid)->gr_name, sb.st_size, tmbuf);
+    }
+
+    printf("%s\n", entryName);
+
+    free(permisions);
 }
 
 void swap(int i, int j, char **array)
@@ -187,12 +290,8 @@ bool isDirectory(char *entry, char *path)
     {
         return false;
     }
-    if (strcmp(entry, ".git") == 0)
-    {
-        return false;
-    }
 
-    char filePath[100];
+    char filePath[500];
     struct stat sb;
     struct tm *date;
     char tmbuf[64], buf[64];
@@ -204,8 +303,10 @@ bool isDirectory(char *entry, char *path)
 
     if (S_ISDIR(sb.st_mode))
     {
+
         return true;
     }
+
     return false;
 }
 void recursiveShow(char *path)
@@ -253,6 +354,32 @@ void recursiveShow(char *path)
         printf("Empty\n");
     }
 }
+
+void printDirectory(char *path)
+{
+    struct dirent **files;
+
+    int numberOfFiles = scandir(path, &files, NULL, alphasort);
+    if (numberOfFiles >= 0)
+    {
+        for (int i = 2; i < numberOfFiles; i++)
+        {
+            printFile(files[i]->d_name, path);
+        }
+        printf("\n");
+
+        for (int i = 0; i < numberOfFiles; i++)
+        {
+            if (isDirectory(files[i]->d_name, path))
+            {
+                // printf("enqueuing: %s \n", entryNames[i]);
+                enqueue(files[i]->d_name, path);
+            }
+        }
+        free(files);
+    }
+}
+
 void showDir(char *path)
 {
     DIR *folder;
@@ -291,9 +418,9 @@ void showDir(char *path)
 
 int main(int argc, char const *argv[])
 {
-    bool option_i = false;
-    bool option_R = false;
-    bool option_l = false;
+    option_i = false;
+    option_R = false;
+    option_l = false;
     char PATH[100];
     for (int i = 1; i < argc; i++)
     {
@@ -323,19 +450,24 @@ int main(int argc, char const *argv[])
         }
     }
 
-    recursiveShow(PATH);
-    struct node *ptr;
+    printDirectory(PATH);
 
-    ptr = first;
-    while (first)
+    // recursiveShow(PATH);
+    if (option_R)
     {
-        ptr = dequeue();
-        // printf("next: %s\n", ptr->path);
-        recursiveShow(ptr->path);
-        free(ptr->path);
-        free(ptr);
-        // displayQ();
-        printf("\n");
+        struct node *ptr;
+
+        ptr = first;
+        while (first)
+        {
+            ptr = dequeue();
+
+            // printf("%s\n", ptr->path);
+            printDirectory(ptr->path);
+            free(ptr->path);
+            free(ptr);
+            // displayQ();
+        }
     }
 
     return 0;
