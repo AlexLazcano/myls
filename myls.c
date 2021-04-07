@@ -1,4 +1,4 @@
-// #include <stdio.h>
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -9,11 +9,11 @@
 #include <time.h>
 #include <ctype.h>
 #include "secret_headers.h"
-// #include <fcntl.h>
 
 bool option_i = false;
 bool option_R = false;
 bool option_l = false;
+char* name = "";
 
 struct node
 {
@@ -27,10 +27,7 @@ struct node *last = NULL;
 
 void enqueue(char *dir, char *path)
 {
-
-    // printf("path: %s %s\n", path, dir);
     struct node *ptr = malloc(sizeof(struct node));
-    // char *copyDir = malloc(sizeof(strlen(dir)));
 
     int size = strlen(path) + strlen(dir) + strlen("\"\"");
 
@@ -38,11 +35,9 @@ void enqueue(char *dir, char *path)
 
     strcpy(filePath, path);
     strcat(filePath, "/");
-    // strcat(filePath, "/\"");
 
     strcat(filePath, dir);
-    // strcat(filePath, "\"");
-    // printf("%s\n", filePath);
+
     ptr->path = filePath;
 
     ptr->next = NULL;
@@ -63,9 +58,6 @@ struct node *dequeue()
     struct node *ptr;
     ptr = first;
     first = ptr->next;
-
-    // char *directory = malloc(sizeof(strlen(ptr->directory)));
-    // strcpy(directory, ptr->directory);
 
     return ptr;
 }
@@ -179,8 +171,6 @@ void printFile(char *entryName, char *path)
     strcat(filePath, "/");
     strcat(filePath, entryName);
 
-    // printf("%s\n", filePath);
-
     stat(filePath, &sb);
     time_t time = (time_t)sb.st_mtim.tv_sec;
     date = localtime(&time);
@@ -205,38 +195,6 @@ void printFile(char *entryName, char *path)
     free(permisions);
 }
 
-void swap(int i, int j, char **array)
-{
-    char *temp = array[i];
-
-    array[i] = array[j];
-    array[j] = temp;
-}
-
-int w1_less_w2(char *word1, char *word2)
-{
-    int minlength = strlen(word1) < strlen(word2) ? strlen(word1) : strlen(word2);
-
-    char *copy1 = malloc(strlen(word1));
-    char *copy2 = malloc(strlen(word2));
-    strcpy(copy1, word1);
-    strcpy(copy2, word2);
-    for (int i = 0; i <= minlength; i++)
-    {
-        copy1[i] = tolower(copy1[i]);
-        copy2[i] = tolower(copy2[i]);
-    }
-
-    bool b = false;
-    if (strcmp(copy1, copy2) < 0)
-    {
-
-        b = true;
-    }
-
-    return b;
-}
-
 void printArray(char **names, int numberOfName)
 {
     // printf("Name array:\n");
@@ -244,40 +202,6 @@ void printArray(char **names, int numberOfName)
     {
         printf("%s\n", names[i]);
     }
-}
-
-int partition(char **array, int left, int right)
-{
-    char *pivot = array[right];
-    int index = left - 1;
-
-    for (int i = left; i < right; i++)
-    {
-        if (w1_less_w2(array[i], pivot))
-        {
-            index++;
-            swap(i, index, array);
-        }
-    }
-    swap(index + 1, right, array);
-    return index + 1;
-}
-
-void sortLexographically(char **names, int left, int right)
-{
-
-    if (left < right)
-    {
-        int pivot = partition(names, left, right);
-        sortLexographically(names, left, pivot - 1);
-        sortLexographically(names, pivot + 1, right);
-    }
-}
-
-void sort(char **names, int numberOfNames)
-{
-
-    sortLexographically(names, 0, numberOfNames - 1);
 }
 
 bool isDirectory(char *entry, char *path)
@@ -300,6 +224,11 @@ bool isDirectory(char *entry, char *path)
     strcat(filePath, "/");
     strcat(filePath, entry);
     stat(filePath, &sb);
+    if (S_ISLNK(sb.st_mode))
+    {
+
+        return true;
+    }
 
     if (S_ISDIR(sb.st_mode))
     {
@@ -309,52 +238,10 @@ bool isDirectory(char *entry, char *path)
 
     return false;
 }
-void recursiveShow(char *path)
-{
 
-    DIR *folder;
-    struct dirent *entry;
-    printf("Path is: %s\n", path);
-    folder = opendir(path);
-
-    if (folder)
-    {
-        int entryLength = 10;
-        char **entryNames = malloc(sizeof(char *) * entryLength);
-        int numberOfEntries = 0;
-
-        while (entry = readdir(folder))
-        {
-            entryNames[numberOfEntries] = entry->d_name;
-
-            numberOfEntries++;
-            if (numberOfEntries > entryLength)
-            {
-                entryLength += 10;
-                entryNames = realloc(entryNames, sizeof(char *) * entryLength);
-            }
-        }
-
-        sort(entryNames, numberOfEntries);
-        printArray(entryNames, numberOfEntries);
-        for (int i = 0; i < numberOfEntries; i++)
-        {
-            if (isDirectory(entryNames[i], path))
-            {
-                // printf("enqueuing: %s \n", entryNames[i]);
-                enqueue(entryNames[i], path);
-            }
-        }
-
-        // displayQ();
-        free(entryNames);
-    }
-    else
-    {
-        printf("Empty\n");
-    }
+int fileSearch(const struct dirent *entry){
+    return !strcmp(entry->d_name, name );
 }
-
 void printDirectory(char *path)
 {
     struct dirent **files;
@@ -366,7 +253,7 @@ void printDirectory(char *path)
         {
             printFile(files[i]->d_name, path);
         }
-        printf("\n");
+        printf("-------\n");
 
         for (int i = 0; i < numberOfFiles; i++)
         {
@@ -378,52 +265,53 @@ void printDirectory(char *path)
         }
         free(files);
     }
-    else{
-        printf("Error: %s not found\n", path);
-    }
-}
-
-void showDir(char *path)
-{
-    DIR *folder;
-    struct dirent *entry;
-    // printf("Path is: %s\n", path);
-
-    folder = opendir(path);
-
-    if (folder)
+    else
     {
-        int entryLength = 10;
-        char **entryNames = malloc(sizeof(char *) * entryLength);
-        int numberOfEntries = 0;
+        // int index = 0;
+        char *ptr;
+        ptr = strrchr(path, '/');
+        char copyPath[strlen(path)];
+        char file[strlen(path)];
 
-        while (entry = readdir(folder))
+        int index = 0;
+
+        for (int i = strlen(path); i > 0; i--)
         {
-            entryNames[numberOfEntries] = entry->d_name;
-            numberOfEntries++;
-            if (numberOfEntries > entryLength)
+            if (path[i] == '/')
             {
-                entryLength += 10;
 
-                entryNames = realloc(entryNames, sizeof(char *) * entryLength);
+                index = i + 1;
+                break;
             }
         }
 
-        sort(entryNames, numberOfEntries);
-        printArray(entryNames, numberOfEntries);
-        free(entryNames);
-    }
-    else
-    {
-        printf("Empty\n");
+        strncpy(copyPath, path, index);
+        strncpy(file, path + index, strlen(path) - index);
+        file[strlen(path) - index] = '\0';
+
+
+        name = file;
+        struct dirent **files;
+
+        int numberOfFiles = scandir(copyPath, &files, fileSearch, NULL);
+
+        if (numberOfFiles > 0)
+        {
+           printf("%s\n", path);
+        }else{
+            printf("Error: %s not found\n", path);
+        }
+        
+        name = "";
+        
+
+        
     }
 }
 
 int main(int argc, char const *argv[])
 {
-    // option_i = false;
-    // option_R = false;
-    // option_l = false;
+
     char PATH[100];
 
     strcpy(PATH, ".");
@@ -449,14 +337,14 @@ int main(int argc, char const *argv[])
                 else if (argv[i][j] == 'l')
                 {
                     option_l = true;
-                }else{
-                    printf("Error: %c flag is invalid\n", argv[i][j]);
-
                 }
-
+                else
+                {
+                    printf("Error: %c flag is invalid\n", argv[i][j]);
+                }
             }
         }
-        if ( argv[i][0] != '-')
+        if (argv[i][0] != '-')
         {
             numberOfPaths++;
             // strcpy(PATH, argv[i]);
@@ -466,12 +354,15 @@ int main(int argc, char const *argv[])
     // printDirectory(PATH);
     for (int i = argc - numberOfPaths; i < argc; i++)
     {
-        
+
         strcpy(PATH, argv[i]);
 
         printDirectory(PATH);
     }
-    
+    if (numberOfPaths == 0)
+    {
+        printDirectory(".");
+    }
 
     // recursiveShow(PATH);
     if (option_R)
@@ -483,7 +374,7 @@ int main(int argc, char const *argv[])
         {
             ptr = dequeue();
 
-            // printf("%s\n", ptr->path);
+            printf("%-20s\n", ptr->path);
             printDirectory(ptr->path);
             free(ptr->path);
             free(ptr);
