@@ -254,11 +254,39 @@ bool isDirectory(char *entry, char *path)
 int fileSearch(const struct dirent *entry){
     return !strcmp(entry->d_name, name );
 }
+
+
+
+int compare(const char *word1, const char *word2)
+{
+    int minlength = strlen(word1) < strlen(word2) ? strlen(word1) : strlen(word2);
+
+    for (int i = 0; i < minlength; i++)
+    {
+        if (word1[i] < word2[i])
+        {
+            return 0;
+        }
+        
+    }
+    return 1;
+    
+
+   
+}
+
+int sort(const struct dirent** e1, const struct dirent** e2){
+    
+   
+    return strcoll(e1[0]->d_name, e2[0]->d_name);
+
+}
+
 void printDirectory(char *path)
 {
     struct dirent **files;
 
-    int numberOfFiles = scandir(path, &files, NULL, alphasort);
+    int numberOfFiles = scandir(path, &files, NULL, sort);
     if (numberOfFiles >= 0)
     {
         for (int i = 0; i < numberOfFiles; i++)
