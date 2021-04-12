@@ -12,3 +12,6 @@ clean:
 	-rm infodemo
 	-rm myls
 	-rm *.o
+
+# val: val
+# 	valgrind --leak-check=full ./myls -R ~

@@ -159,6 +159,18 @@ char *getPermissions(mode_t bits)
 
 void printFile(char *entryName, char *path)
 {
+    if (strcmp(entryName, ".") == 0)
+    {
+        printf("%s\n", ".");
+        return;
+    }
+     if (strcmp(entryName, "..") == 0)
+    {
+        printf("%s\n", "..");
+        return;
+    }
+    
+    
     char filePath[100];
     struct stat sb;
     struct tm *date;
@@ -249,11 +261,13 @@ void printDirectory(char *path)
     int numberOfFiles = scandir(path, &files, NULL, alphasort);
     if (numberOfFiles >= 0)
     {
-        for (int i = 2; i < numberOfFiles; i++)
+        for (int i = 0; i < numberOfFiles; i++)
         {
             printFile(files[i]->d_name, path);
+            
         }
-        printf("-------\n");
+        // printf("-------\n");
+         printf("\n");
 
         for (int i = 0; i < numberOfFiles; i++)
         {
@@ -263,6 +277,12 @@ void printDirectory(char *path)
                 enqueue(files[i]->d_name, path);
             }
         }
+
+        for (int i = 0; i < numberOfFiles; i++)
+        {
+            free(files[i]);
+        }
+        
         free(files);
     }
     else
@@ -291,7 +311,7 @@ void printDirectory(char *path)
 
 
         name = file;
-        struct dirent **files;
+        
 
         int numberOfFiles = scandir(copyPath, &files, fileSearch, NULL);
 
@@ -304,7 +324,7 @@ void printDirectory(char *path)
         
         name = "";
         
-
+        free(files);
         
     }
 }
@@ -374,7 +394,7 @@ int main(int argc, char const *argv[])
         {
             ptr = dequeue();
 
-            printf("%-20s\n", ptr->path);
+            printf("Path %-20s\n", ptr->path);
             printDirectory(ptr->path);
             free(ptr->path);
             free(ptr);
