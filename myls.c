@@ -170,8 +170,8 @@ void printFile(char *entryName, char *path)
         return;
     }
     
-    
-    char filePath[100];
+    int size = strlen(entryName) + strlen(path) + 5;
+    char filePath[size];
     struct stat sb;
     struct tm *date;
     char tmbuf[64], buf[64];
@@ -194,12 +194,12 @@ void printFile(char *entryName, char *path)
 
     if (option_i)
     {
-        printf("%-9ld ", sb.st_ino);
+        printf("%9ld ", sb.st_ino);
     }
 
     if (option_l)
     {
-        printf("%-10s %ld %s %s %6ld %-18s ", permisions, sb.st_nlink, getpwuid(sb.st_uid)->pw_name, getgrgid(sb.st_gid)->gr_name, sb.st_size, tmbuf);
+        printf("%11s %ld %s %s %6ld %-18s ", permisions, sb.st_nlink, getpwuid(sb.st_uid)->pw_name, getgrgid(sb.st_gid)->gr_name, sb.st_size, tmbuf);
     }
 
     printf("%s\n", entryName);
@@ -226,8 +226,8 @@ bool isDirectory(char *entry, char *path)
     {
         return false;
     }
-
-    char filePath[500];
+    int size = strlen(entry) + strlen(path) + 4;
+    char filePath[size];
     struct stat sb;
     struct tm *date;
     char tmbuf[64], buf[64];
@@ -336,16 +336,23 @@ void printDirectory(char *path)
         strncpy(copyPath, path, index);
         strncpy(file, path + index, strlen(path) - index);
         file[strlen(path) - index] = '\0';
-
+        if (strlen(copyPath) == 0)
+        {
+           strcpy(copyPath, ".");
+        }
+        
 
         name = file;
+        // printf("file name is %s\n", file);
+        // printf("file path is %s\n", copyPath);
         
 
         int numberOfFiles = scandir(copyPath, &files, fileSearch, NULL);
 
         if (numberOfFiles > 0)
         {
-           printf("%s\n", path);
+            printFile(name, copyPath);
+
         }else{
             printf("Error: %s not found\n", path);
         }
