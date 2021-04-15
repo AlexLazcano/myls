@@ -13,7 +13,7 @@
 bool option_i = false;
 bool option_R = false;
 bool option_l = false;
-char* name = "";
+char *name = "";
 
 struct node
 {
@@ -21,58 +21,6 @@ struct node
     // char *directory;
     struct node *next;
 };
-
-struct node *first = NULL;
-struct node *last = NULL;
-
-void enqueue(char *dir, char *path)
-{
-    struct node *ptr = malloc(sizeof(struct node));
-
-    int size = strlen(path) + strlen(dir) + strlen("\"\"");
-
-    char *filePath = malloc(size);
-
-    strcpy(filePath, path);
-    strcat(filePath, "/");
-
-    strcat(filePath, dir);
-
-    ptr->path = filePath;
-
-    ptr->next = NULL;
-    if (!first)
-    {
-        first = ptr;
-        last = ptr;
-    }
-    else
-    {
-        last->next = ptr;
-        last = ptr;
-    }
-}
-
-struct node *dequeue()
-{
-    struct node *ptr;
-    ptr = first;
-    first = ptr->next;
-
-    return ptr;
-}
-void displayQ()
-{
-    struct node *ptr;
-
-    ptr = first;
-    printf("Queue: \n");
-    while (ptr)
-    {
-        printf("%s\n", ptr->path);
-        ptr = ptr->next;
-    }
-}
 
 char *getPermissions(mode_t bits)
 {
@@ -164,12 +112,12 @@ void printFile(char *entryName, char *path)
         printf("%s\n", ".");
         return;
     }
-     if (strcmp(entryName, "..") == 0)
+    if (strcmp(entryName, "..") == 0)
     {
         printf("%s\n", "..");
         return;
     }
-    
+
     int size = strlen(entryName) + strlen(path) + 5;
     char filePath[size];
     struct stat sb;
@@ -251,11 +199,10 @@ bool isDirectory(char *entry, char *path)
     return false;
 }
 
-int fileSearch(const struct dirent *entry){
-    return !strcmp(entry->d_name, name );
+int fileSearch(const struct dirent *entry)
+{
+    return !strcmp(entry->d_name, name);
 }
-
-
 
 int compare(const char *word1, const char *word2)
 {
@@ -267,19 +214,14 @@ int compare(const char *word1, const char *word2)
         {
             return 0;
         }
-        
     }
     return 1;
-    
-
-   
 }
 
-int sort(const struct dirent** e1, const struct dirent** e2){
-    
-   
-    return strcoll(e1[0]->d_name, e2[0]->d_name);
+int sort(const struct dirent **e1, const struct dirent **e2)
+{
 
+    return strcoll(e1[0]->d_name, e2[0]->d_name);
 }
 
 void printDirectory(char *path)
@@ -291,26 +233,34 @@ void printDirectory(char *path)
     {
         for (int i = 0; i < numberOfFiles; i++)
         {
-            printFile(files[i]->d_name, path);
-            
-        }
-        // printf("-------\n");
-         printf("\n");
-
-        for (int i = 0; i < numberOfFiles; i++)
-        {
-            if (isDirectory(files[i]->d_name, path))
+            int notHidden = files[i]->d_name[0] == '.' ? false : true;
+            if (notHidden)
             {
-                // printf("enqueuing: %s \n", entryNames[i]);
-                enqueue(files[i]->d_name, path);
+                printFile(files[i]->d_name, path);
+            }
+
+            if (option_R && notHidden)
+            {
+                char subPath[sizeof(path) + sizeof(files[i]->d_name) + 5];
+
+                if (isDirectory(files[i]->d_name, path))
+                {
+                    strcpy(subPath, path);
+                    strcat(subPath, "/");
+                    strcat(subPath, files[i]->d_name);
+                    printf("\n%s\n", subPath);
+                    printDirectory(subPath);
+                }
             }
         }
+        // printf("-------\n");
+        
 
         for (int i = 0; i < numberOfFiles; i++)
         {
             free(files[i]);
         }
-        
+
         free(files);
     }
     else
@@ -338,29 +288,27 @@ void printDirectory(char *path)
         file[strlen(path) - index] = '\0';
         if (strlen(copyPath) == 0)
         {
-           strcpy(copyPath, ".");
+            strcpy(copyPath, ".");
         }
-        
 
         name = file;
         // printf("file name is %s\n", file);
         // printf("file path is %s\n", copyPath);
-        
 
         int numberOfFiles = scandir(copyPath, &files, fileSearch, NULL);
 
         if (numberOfFiles > 0)
         {
             printFile(name, copyPath);
-
-        }else{
+        }
+        else
+        {
             printf("Error: %s not found\n", path);
         }
-        
+
         name = "";
-        
+
         free(files);
-        
     }
 }
 
@@ -417,24 +365,6 @@ int main(int argc, char const *argv[])
     if (numberOfPaths == 0)
     {
         printDirectory(".");
-    }
-
-    // recursiveShow(PATH);
-    if (option_R)
-    {
-        struct node *ptr;
-
-        ptr = first;
-        while (first)
-        {
-            ptr = dequeue();
-
-            printf("Path %-20s\n", ptr->path);
-            printDirectory(ptr->path);
-            free(ptr->path);
-            free(ptr);
-            // displayQ();
-        }
     }
 
     return 0;
